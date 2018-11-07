@@ -3,16 +3,16 @@ import time
 import numpy as np
 
 
-robot.enablePID(1) #Enables PI (Proportionate Integral) on robot this causes two things, we no longer can send regular robot.motors() commands because PI will immedietly 0 them. It allows us to use motorsRPM command which is regulated by our PI loop
+robot.enablePID(1) #Enables PI (Proportional Integral) on robot this causes two things, we no longer can send regular robot.motors() commands because PI will immedietly 0 them. It allows us to use motorsRPM command which is regulated by our PI loop
 
 
-robot.motorsRPM(0,0,0) #This takes a rpm value for example robots.motorsRPM(195,0,0) would make wheel one rotate 195 times a min. I'd leave this hear as it makes sure your motors are off at start and this can be helpful (max right now is around 200RPM)
+robot.motorsRPM(0,0,0) #This takes a rpm value for example robots.motorsRPM(180,0,0) would make wheel one rotate 180 times a min. I'd leave this here as it makes sure your motors are off at start and this can be helpful (max right now is around 180RPM)
 
 #robot.RPM(0) reads motor 0's rpm. 
 print(robot.RPM(0))
 
 
-#you can use this function to implement your kinematic equations to calculate a RPM value to give the robot. Essentially your xd (x dot aka velocity) will be the value you pass in to move the robot in the x direction in meters per second. The same applies to yd. thetad will be your orientation and is in radians, for example 3.14 would be half a rotation a second.
+#you can use this function to implement your inverse kinematic equations to calculate a RPM value to give the robot. Essentially your xd (x dot a.k.a x velocity) will be the value you pass in to move the robot in the x direction in meters per second. The same applies to yd. thetad will be your orientation and is in radians, for example 3.14 would be half a rotation a second.
 def kinematic(xd,yd,thetad):
 	r = 0.03 # radius of each wheel [m]
 	l = 0.19 # distance from each wheel to the point of reference [m]
