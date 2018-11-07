@@ -24,6 +24,8 @@ def motors(m1,m2,m3):
 	for x in range(3):
 		ser.write(("m %d %d %d\r" % (x, abs(motorValues[x]), int(motorValues[x]>=0))).encode())
 
+def motorsRPM(m1,m2,m3):
+	ser.write(("v %d %d %d\r" %(int(m1*10),int(m2*10),int(m3*10))).encode())
 
 
 #read encoder value from motor number given
@@ -46,7 +48,7 @@ def infrared(infraredNum):
 	return infraredValue.rstrip()
 
 
-def rpm(rpmNum):
+def RPM(rpmNum):
 	ser.reset_input_buffer()
 	ser.write(("r %f \r" % (rpmNum)).encode())
 	rpmValue = (ser.readline().decode("ascii"))

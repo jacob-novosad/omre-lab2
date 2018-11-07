@@ -34,14 +34,15 @@ const int ultrasonicSensorEchoPins[] = {
 const int infraredSensorPins[] = {
   0,1,2,3};
 
-double Kp = 0; // 12
-double Ki = .1/60; // .1
+double Kp = 1; // 12
+double Ki = .007; // .1
 //double Kd = 0;
 
 double sum[3]        = {0,0,0};
 double error[3]      = {0,0,0};
 double setpoint[3]   = {0,0,0};
 double pwmValue[3]   = {0,0,0};
+double rpms[3]  = {0,0,0};
 
 unsigned long lastTime[3]   = {
   0,0,0};
@@ -152,8 +153,8 @@ void pi() {
   for(int i =0;i<3;i++)
   {
     // if pi not set to 0 for robot
-//    if(setpoint[i] != 0)
-//    {
+   if(setpoint[i] != 0)
+   {
       
       //updateRPM();
       timeChange[i] = (millis() - lastTime[i]);
@@ -177,20 +178,21 @@ void pi() {
 //      Serial.println(i);
 //      Serial.print("Error: ");
 //      Serial.println(error[i]);
-//      Serial.print("Revs PM Value: ");
-       // Serial.println(rpmValues[i]);
-      // Serial.print(",");
-      //  Serial.println(millis());
-//      Serial.print("PWM Value: ");
-//      Serial.println(pwmValue[i]);
+ //     Serial.print("Revs PM Value: ");
+ //       Serial.print(millis()*0.001);
+  //      Serial.print("  ,  ");
+ //       Serial.println(rpmValues[i]);   
+   //   Serial.print("PWM Value: ");
+   //   Serial.println(pwmValue[i]);
       error[i] = setpoint[i] -rpmValues[i];
       
-//    }
-//    else
-//    {
-//      error[i] = 0;
-//      motor(i,0,0);
-//    }
+    }
+   else
+    {
+      error[i] = 0;
+      sum[i]   = 0;
+      motor(i,0,0);
+   }
   }
 }
 
@@ -299,10 +301,11 @@ void parseCommand()
   case 'E':
   case 'e':
     int encoderNum;
-    buffer_Flush(TXBuffer);
     sscanf(&rcv_buffer[1], " %d \r",&encoderNum);
+    long counts;
+    counts = encoderCounts[encoderNum];
     //itoa(encoderCounts[encoderNum],TXBuffer,10);   // serial.print can not handle printing a 64bit int so we turn it  into a string
-    Serial.println(encoderCounts[encoderNum]);
+    Serial.println(counts);
     break;
   case 'M':
   case 'm':
@@ -316,20 +319,34 @@ void parseCommand()
   case 'u':
   case 'U':
     int ultrasonicNumber;
-    long duration,cm,inches;
-     
+    long duration,cm,start;
+    //duration = -60; 
     sscanf(&rcv_buffer[1], " %d \r",&ultrasonicNumber);
-
     digitalWrite(ultrasonicSensorTrigPins[ultrasonicNumber], LOW);
     //delayMicroseconds(5);
     digitalWrite(ultrasonicSensorTrigPins[ultrasonicNumber], HIGH);
     delayMicroseconds(10);
     digitalWrite(ultrasonicSensorTrigPins[ultrasonicNumber], LOW);
-
-    duration = pulseIn(ultrasonicSensorEchoPins[ultrasonicNumber], HIGH);
+    start = micros();
+    
+    while(digitalRead(ultrasonicSensorEchoPins[ultrasonicNumber]) == LOW);
+    start = micros();
+    
+    while(micros()-start <= 6000)
+    {
+      if(digitalRead(ultrasonicSensorEchoPins[ultrasonicNumber]) == LOW)
+      {
+        duration = micros()-start;
+        break;
+      }
+      //duration = micros()-start;
+    }
+    
+    
+    //duration = pulseIn(ultrasonicSensorEchoPins[ultrasonicNumber], HIGH);
     cm = (duration/2) / 29.1;
     //Serial.println(duration);
-    //inches = (duration/2) / 74; 
+    //inches = (duration/2) /  
     Serial.println(cm);
     break;
 
@@ -355,15 +372,24 @@ void parseCommand()
     //Serial.println(rpm1);
     //Serial.println(rpm2);
 
+    rpms[0] = (double)(rpm0/10);
+    rpms[1] = (double)(rpm1/10);
+    rpms[2] = (double)(rpm2/10);
+
    for(int i = 0;i<3;i++)
    {
-//      error[i] = 0;
-      sum[i]   = 0;
-    }
+     // when the setpoint is in a 30 +/- range do not set the sum to 0, aka if major velocity change set your sum
+     // to 0. if small then don't change it
+     if(!(setpoint[i]+30 >= rpms[i] && setpoint[i]-30 <= rpms[i]))
+     {
+            //error[i] = 0;
+            sum[i]   = 0;
+     }
+   }
     
-    setpoint[0] = (double)(rpm0/10);
-    setpoint[1] = (double)(rpm1/10);
-    setpoint[2] = (double)(rpm2/10);
+    setpoint[0] = rpms[0];
+    setpoint[1] = rpms[1];
+    setpoint[2] = rpms[2];
     break;
     
   case 'p':
@@ -385,6 +411,16 @@ void parseCommand()
     sscanf(&rcv_buffer[1], " %d \r",&rpmNum);
     printDouble(rpmValues[rpmNum],1000000000);
    break;
+  
+  case 'k':
+  case 'K':
+     char  pValue[20];
+     char  iValue[20];
+     sscanf(&rcv_buffer[1], " %s %s \r",&pValue,&iValue);
+     char *ptr;
+     Kp = strtod(pValue,&ptr);
+     Ki = strtod(iValue,&ptr);
+     break;
 
 
  // default:
